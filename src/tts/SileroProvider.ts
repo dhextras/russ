@@ -38,7 +38,10 @@ export class SileroProvider implements TTSProvider {
       signal: makeSignal(120_000),
     });
 
-    if (!res.ok) throw new Error(`Silero /tts/lesson failed: HTTP ${res.status}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { detail?: string };
+      throw new Error(`/tts/lesson ${res.status}: ${err.detail ?? 'unknown error'}`);
+    }
 
     const data = (await res.json()) as { url?: string };
     if (!data.url) throw new Error('Silero response missing url field');
@@ -59,7 +62,10 @@ export class SileroProvider implements TTSProvider {
       signal: makeSignal(30_000),
     });
 
-    if (!res.ok) throw new Error(`Silero /tts/line failed: HTTP ${res.status}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({})) as { detail?: string };
+      throw new Error(`/tts/line ${res.status}: ${err.detail ?? 'unknown error'}`);
+    }
 
     const data = (await res.json()) as { url?: string };
     if (!data.url) throw new Error('Silero response missing url field');
