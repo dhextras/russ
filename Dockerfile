@@ -10,6 +10,7 @@ WORKDIR /home/user/app
 
 COPY --chown=user hf-backend/requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir numpy && \
     pip install --no-cache-dir -r requirements.txt
 
 COPY --chown=user hf-backend/app.py .
