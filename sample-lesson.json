@@ -1,0 +1,17 @@
+{
+  "title": "At the shop",
+  "description": "Buying everyday items — greetings, asking for things, paying",
+  "tags": ["shop", "beginner"],
+  "lines": [
+    { "ru": "Здравствуйте!", "en": "Hello!" },
+    { "ru": "У вас есть вода?", "en": "Do you have water?" },
+    { "ru": "Да, конечно. Какой размер?", "en": "Yes, of course. What size?" },
+    { "ru": "Маленькую бутылку, пожалуйста.", "en": "A small bottle, please." },
+    { "ru": "Что-нибудь ещё?", "en": "Anything else?" },
+    { "ru": "Нет, спасибо. Сколько стоит?", "en": "No, thank you. How much is it?" },
+    { "ru": "Пятьдесят рублей.", "en": "Fifty rubles." },
+    { "ru": "Вот, пожалуйста.", "en": "Here you go." },
+    { "ru": "Спасибо. До свидания!", "en": "Thank you. Goodbye!" },
+    { "ru": "Всего доброго!", "en": "All the best!" }
+  ]
+}

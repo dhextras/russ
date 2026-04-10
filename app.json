@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "RussApp",
+    "slug": "russ-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "russ-app",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.russapp",
+      "infoPlist": {
+        "UIBackgroundModes": ["audio"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "package": "com.russapp"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-av",
+      "expo-asset"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

@@ -1,0 +1,18 @@
+# expo-cli managed
+expo-env.d.ts
+
+# dependencies
+node_modules/
+
+# build outputs
+.expo/
+dist/
+web-build/
+
+# native
+android/
+ios/
+
+# misc
+*.log
+.DS_Store
