@@ -41,7 +41,7 @@ model.to(device)
 print("Silero ready.")
 
 SAMPLE_RATE = 24000
-SPEAKER = "aidar"
+SPEAKER = "xenia"
 
 
 def synthesize(text: str) -> torch.Tensor:
