@@ -2,15 +2,22 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Audio, AVPlaybackStatus } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { Lesson } from '../types/lesson';
-import { ensureFullAudio, ensureLineAudio, getCachedLineIndices } from '../services/audioService';
-import { getFullAudioPath, getLineAudioPath } from '../services/storage';
+import { ensureLineAudio, getCachedLineIndices } from '../services/audioService';
+import { getLineAudioPath } from '../services/storage';
 
 type PlayState = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
+
+export interface DownloadProgress {
+  done: number;
+  total: number;
+}
 
 export function useAudioPlayback(lesson: Lesson | null, isOnline: boolean) {
   const [playState, setPlayState] = useState<PlayState>('idle');
   const [currentLineIdx, setCurrentLineIdx] = useState<number | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
+  const isDownloadingRef = useRef(false);
 
   const soundRef = useRef<Audio.Sound | null>(null);
   const queueRef = useRef<number[]>([]);
@@ -116,41 +123,37 @@ export function useAudioPlayback(lesson: Lesson | null, isOnline: boolean) {
     const lesson = lessonRef.current;
     if (!lesson) return;
     setErrorMsg(null);
-    lineModeRef.current = false;
-    queueRef.current = [];
-    setCurrentLineIdx(null);
-    setPlayState('loading');
     await unloadCurrent();
 
-    const fullPath = getFullAudioPath(lesson.id);
-    const cached = await FileSystem.getInfoAsync(fullPath);
-
-    if (cached.exists) {
-      await loadAndPlay(fullPath);
-      return;
-    }
-
+    // Always play line-by-line so currentLineIdx tracks which line is playing
     if (isOnlineRef.current) {
-      const path = await ensureFullAudio(lesson.id);
-      if (path) {
-        await loadAndPlay(path);
-        return;
+      // Online: fetch any missing lines on-demand as the queue advances
+      await startLineQueue(0);
+    } else {
+      // Offline: only play what's already cached
+      const cachedIndices = await getCachedLineIndices(lesson.id, lesson.lines.length);
+      if (cachedIndices.length > 0) {
+        await startLineQueue(0, cachedIndices);
+      } else {
+        setPlayState('error');
+        setErrorMsg('No cached audio. Go online or download first.');
       }
     }
-
-    // Fallback: play whatever line audio is already cached, sequentially
-    const cachedIndices = await getCachedLineIndices(lesson.id, lesson.lines.length);
-    if (cachedIndices.length > 0) {
-      await startLineQueue(0, cachedIndices);
-    } else {
-      setPlayState('error');
-      setErrorMsg(
-        isOnlineRef.current
-          ? 'Audio generation failed. Check backend URL in Settings.'
-          : 'No cached audio. Go online to generate.'
-      );
-    }
   }, [startLineQueue]);
+
+  const downloadAll = useCallback(async () => {
+    const lesson = lessonRef.current;
+    if (!lesson || !isOnlineRef.current || isDownloadingRef.current) return;
+    isDownloadingRef.current = true;
+    const total = lesson.lines.length;
+    setDownloadProgress({ done: 0, total });
+    for (let i = 0; i < total; i++) {
+      await ensureLineAudio(lesson.id, i);
+      setDownloadProgress({ done: i + 1, total });
+    }
+    isDownloadingRef.current = false;
+    setDownloadProgress(null);
+  }, []);
 
   const playFromLine = useCallback(
     async (lineIdx: number) => {
@@ -208,12 +211,15 @@ export function useAudioPlayback(lesson: Lesson | null, isOnline: boolean) {
     playState,
     currentLineIdx,
     errorMsg,
+    downloadProgress,
     isPlaying: playState === 'playing',
     isPaused: playState === 'paused',
     isLoading: playState === 'loading',
+    isDownloading: isDownloadingRef.current,
     playFull,
     playFromLine,
     playSingleLine,
+    downloadAll,
     pause,
     resume,
     stop,

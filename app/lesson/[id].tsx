@@ -96,12 +96,16 @@ function LessonContent({ lesson, isOnline }: { lesson: Lesson; isOnline: boolean
         isPlaying={audio.isPlaying}
         isPaused={audio.isPaused}
         isLoading={audio.isLoading}
+        isDownloading={audio.isDownloading}
         hasAudio={hasAudio}
+        isOnline={isOnline}
         errorMsg={audio.errorMsg}
+        downloadProgress={audio.downloadProgress}
         onPlay={audio.playFull}
         onPause={audio.pause}
         onResume={audio.resume}
         onStop={audio.stop}
+        onDownload={audio.downloadAll}
       />
 
       <FlatList
