@@ -7,13 +7,14 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { router } from 'expo-router';
 import { validateLessonJSON } from '../src/services/lessonValidator';
 import { createLessonFromImport } from '../src/services/storage';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
+import { useModal } from '../src/hooks/useModal';
+import { AppModal } from '../src/components/AppModal';
 import { ensureFullAudio } from '../src/services/audioService';
 import { colors, spacing, fontSize } from '../src/constants/theme';
 
@@ -23,6 +24,7 @@ export default function ImportLessonScreen() {
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
   const network = useNetworkStatus();
+  const { modalConfig, hide, alert } = useModal();
 
   async function handleCopyPrompt() {
     await Clipboard.setStringAsync(LESSON_GENERATOR_PROMPT);
@@ -35,26 +37,22 @@ export default function ImportLessonScreen() {
       setErrors(['Paste a lesson JSON first']);
       return;
     }
-
     const result = validateLessonJSON(json);
     if (!result.valid || !result.lesson) {
       setErrors(result.errors);
       return;
     }
-
     setErrors([]);
     setSaving(true);
     try {
       const lesson = await createLessonFromImport(result.lesson);
-
       if (network.isInternetReachable) {
         ensureFullAudio(lesson.id).catch(() => {});
       }
-
-      Alert.alert(
+      alert(
         'Saved',
-        `"${lesson.title}" saved.${network.isInternetReachable ? ' Audio is being generated.' : ' Audio will be generated when online.'}`,
-        [{ text: 'OK', onPress: () => router.back() }]
+        `"${lesson.title}" saved.${network.isInternetReachable ? ' Audio is being generated.' : ' Go online to generate audio.'}`,
+        () => router.back()
       );
     } catch {
       setErrors(['Failed to save lesson. Please try again.']);
@@ -71,7 +69,7 @@ export default function ImportLessonScreen() {
     const result = validateLessonJSON(json);
     if (result.valid) {
       setErrors([]);
-      Alert.alert('Valid', `Lesson looks good: ${result.lesson?.lines.length} lines found.`);
+      alert('Valid', `Lesson looks good — ${result.lesson?.lines.length} lines found.`);
     } else {
       setErrors(result.errors);
     }
@@ -79,15 +77,15 @@ export default function ImportLessonScreen() {
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+      <AppModal config={modalConfig} onDismiss={hide} />
 
-      {/* Copy-prompt button — tap this, paste into Claude/ChatGPT, get JSON back, paste below */}
       <TouchableOpacity style={styles.copyPromptBtn} onPress={handleCopyPrompt}>
         <Text style={styles.copyPromptText}>
           {copied ? 'Copied!' : 'Copy AI lesson generator prompt'}
         </Text>
       </TouchableOpacity>
       <Text style={styles.copyPromptHint}>
-        Paste that into Claude or ChatGPT → get JSON → paste it in the box below
+        Paste into Claude or ChatGPT → get JSON → paste below
       </Text>
 
       <Text style={[styles.label, { marginTop: spacing.lg }]}>Paste lesson JSON</Text>
@@ -95,10 +93,7 @@ export default function ImportLessonScreen() {
         style={styles.input}
         multiline
         value={json}
-        onChangeText={(t) => {
-          setJson(t);
-          setErrors([]);
-        }}
+        onChangeText={(t) => { setJson(t); setErrors([]); }}
         placeholder={'{\n  "title": "...",\n  "description": "...",\n  "lines": [...]\n}'}
         placeholderTextColor={colors.textMuted}
         autoCorrect={false}
@@ -109,9 +104,7 @@ export default function ImportLessonScreen() {
       {errors.length > 0 && (
         <View style={styles.errorBox}>
           {errors.map((e, i) => (
-            <Text key={i} style={styles.errorText}>
-              • {e}
-            </Text>
+            <Text key={i} style={styles.errorText}>• {e}</Text>
           ))}
         </View>
       )}
@@ -125,11 +118,9 @@ export default function ImportLessonScreen() {
           onPress={handleSave}
           disabled={saving}
         >
-          {saving ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.btnPrimaryText}>Save Lesson</Text>
-          )}
+          {saving
+            ? <ActivityIndicator color="#fff" size="small" />
+            : <Text style={styles.btnPrimaryText}>Save Lesson</Text>}
         </TouchableOpacity>
       </View>
 
@@ -141,7 +132,6 @@ export default function ImportLessonScreen() {
   );
 }
 
-// The prompt the user copies and pastes into an AI to generate lesson JSON
 const LESSON_GENERATOR_PROMPT = `Generate a practical Russian lesson for a mobile Russian-learning app.
 
 Return ONLY valid JSON. No markdown fences. No commentary before or after the JSON.
@@ -178,11 +168,7 @@ const SAMPLE_HINT = `{
 }`;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-    padding: spacing.md,
-  },
+  container: { flex: 1, backgroundColor: colors.bg, padding: spacing.md },
   copyPromptBtn: {
     backgroundColor: colors.accentDim,
     borderWidth: 1,
@@ -191,11 +177,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
   },
-  copyPromptText: {
-    color: colors.accent,
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
+  copyPromptText: { color: colors.accent, fontSize: fontSize.md, fontWeight: '600' },
   copyPromptHint: {
     color: colors.textMuted,
     fontSize: fontSize.sm,
@@ -232,16 +214,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
     gap: spacing.xs,
   },
-  errorText: {
-    color: colors.error,
-    fontSize: fontSize.sm,
-    lineHeight: 20,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.md,
-  },
+  errorText: { color: colors.error, fontSize: fontSize.sm, lineHeight: 20 },
+  actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   btnPrimary: {
     flex: 1,
     backgroundColor: colors.accent,
@@ -249,11 +223,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
   },
-  btnPrimaryText: {
-    color: '#fff',
-    fontSize: fontSize.md,
-    fontWeight: '700',
-  },
+  btnPrimaryText: { color: '#fff', fontSize: fontSize.md, fontWeight: '700' },
   btnSecondary: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -263,13 +233,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
   },
-  btnSecondaryText: {
-    color: colors.text,
-    fontSize: fontSize.md,
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
+  btnSecondaryText: { color: colors.text, fontSize: fontSize.md },
+  btnDisabled: { opacity: 0.5 },
   hint: {
     marginTop: spacing.xl,
     backgroundColor: colors.surface,

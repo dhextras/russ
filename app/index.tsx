@@ -5,12 +5,13 @@ import {
   FlatList,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useLessons } from '../src/hooks/useLessons';
 import { useNetworkStatus } from '../src/hooks/useNetworkStatus';
+import { useModal } from '../src/hooks/useModal';
+import { AppModal } from '../src/components/AppModal';
 import { CacheBadge } from '../src/components/CacheBadge';
 import { colors, spacing, fontSize } from '../src/constants/theme';
 import { Lesson } from '../src/types/lesson';
@@ -18,6 +19,7 @@ import { Lesson } from '../src/types/lesson';
 export default function LessonsListScreen() {
   const { lessons, loading, load, removeLesson } = useLessons();
   const network = useNetworkStatus();
+  const { modalConfig, hide, confirm } = useModal();
 
   useEffect(() => {
     load();
@@ -25,16 +27,15 @@ export default function LessonsListScreen() {
 
   const handleDelete = useCallback(
     (lesson: Lesson) => {
-      Alert.alert('Delete lesson', `Delete "${lesson.title}"?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => removeLesson(lesson.id),
-        },
-      ]);
+      confirm(
+        'Delete lesson',
+        `Delete "${lesson.title}"? This cannot be undone.`,
+        'Delete',
+        () => removeLesson(lesson.id),
+        true
+      );
     },
-    [removeLesson]
+    [confirm, removeLesson]
   );
 
   const renderLesson = ({ item }: { item: Lesson }) => (
@@ -63,7 +64,8 @@ export default function LessonsListScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Top bar */}
+      <AppModal config={modalConfig} onDismiss={hide} />
+
       <View style={styles.topBar}>
         <View
           style={[
@@ -76,16 +78,10 @@ export default function LessonsListScreen() {
           </Text>
         </View>
         <View style={styles.topActions}>
-          <TouchableOpacity
-            style={styles.topBtn}
-            onPress={() => router.push('/importexport')}
-          >
+          <TouchableOpacity style={styles.topBtn} onPress={() => router.push('/importexport')}>
             <Text style={styles.topBtnText}>Import / Export All</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.topBtn}
-            onPress={() => router.push('/settings')}
-          >
+          <TouchableOpacity style={styles.topBtn} onPress={() => router.push('/settings')}>
             <Text style={styles.topBtnText}>Settings</Text>
           </TouchableOpacity>
         </View>
@@ -115,10 +111,7 @@ export default function LessonsListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
+  container: { flex: 1, backgroundColor: colors.bg },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -128,20 +121,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  netBadge: {
-    borderRadius: 4,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-  },
-  netText: {
-    color: '#fff',
-    fontSize: fontSize.sm,
-    fontWeight: '600',
-  },
-  topActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
+  netBadge: { borderRadius: 4, paddingHorizontal: spacing.sm, paddingVertical: 3 },
+  netText: { color: '#fff', fontSize: fontSize.sm, fontWeight: '600' },
+  topActions: { flexDirection: 'row', gap: spacing.sm },
   topBtn: {
     backgroundColor: colors.surface,
     borderRadius: 6,
@@ -150,18 +132,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  topBtnText: {
-    color: colors.accent,
-    fontSize: fontSize.sm,
-  },
-  loader: {
-    marginTop: spacing.xl,
-  },
-  list: {
-    padding: spacing.md,
-    paddingBottom: 90,
-    gap: spacing.md,
-  },
+  topBtnText: { color: colors.accent, fontSize: fontSize.sm },
+  loader: { marginTop: spacing.xl },
+  list: { padding: spacing.md, paddingBottom: 90, gap: spacing.md },
   card: {
     backgroundColor: colors.surface,
     borderRadius: 8,
@@ -171,32 +144,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  cardBody: {
-    flex: 1,
-    gap: spacing.xs,
-  },
-  cardTitle: {
-    color: colors.text,
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-  },
-  cardDesc: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    lineHeight: 21,
-  },
-  cardMeta: {
-    color: colors.textMuted,
-    fontSize: fontSize.sm,
-  },
-  deleteBtn: {
-    padding: spacing.sm,
-    marginLeft: spacing.sm,
-  },
-  deleteBtnText: {
-    color: colors.textMuted,
-    fontSize: fontSize.lg,
-  },
+  cardBody: { flex: 1, gap: spacing.xs },
+  cardTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '600' },
+  cardDesc: { color: colors.textSecondary, fontSize: fontSize.md, lineHeight: 21 },
+  cardMeta: { color: colors.textMuted, fontSize: fontSize.sm },
+  deleteBtn: { padding: spacing.sm, marginLeft: spacing.sm },
+  deleteBtnText: { color: colors.textMuted, fontSize: fontSize.lg },
   empty: {
     flex: 1,
     alignItems: 'center',
@@ -204,16 +157,8 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     gap: spacing.sm,
   },
-  emptyTitle: {
-    color: colors.text,
-    fontSize: fontSize.xl,
-    fontWeight: '600',
-  },
-  emptyDesc: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    textAlign: 'center',
-  },
+  emptyTitle: { color: colors.text, fontSize: fontSize.xl, fontWeight: '600' },
+  emptyDesc: { color: colors.textSecondary, fontSize: fontSize.md, textAlign: 'center' },
   fab: {
     position: 'absolute',
     bottom: spacing.xl,
@@ -228,9 +173,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 6,
   },
-  fabText: {
-    color: '#fff',
-    fontSize: fontSize.md,
-    fontWeight: '700',
-  },
+  fabText: { color: '#fff', fontSize: fontSize.md, fontWeight: '700' },
 });

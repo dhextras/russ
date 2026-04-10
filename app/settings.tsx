@@ -6,15 +6,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { getSettings, saveSettings } from '../src/services/settingsService';
 import { resetProvider } from '../src/services/audioService';
+import { useModal } from '../src/hooks/useModal';
+import { AppModal } from '../src/components/AppModal';
 import { colors, spacing, fontSize } from '../src/constants/theme';
 
 export default function SettingsScreen() {
   const [backendUrl, setBackendUrl] = useState('');
   const [saved, setSaved] = useState(false);
+  const { modalConfig, hide, alert } = useModal();
 
   useEffect(() => {
     getSettings().then((s) => setBackendUrl(s.sileroBackendUrl));
@@ -22,7 +24,7 @@ export default function SettingsScreen() {
 
   async function handleSave() {
     await saveSettings({ sileroBackendUrl: backendUrl.trim() });
-    resetProvider(); // force re-init with new URL
+    resetProvider();
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -30,45 +32,42 @@ export default function SettingsScreen() {
   function handleTest() {
     const url = backendUrl.trim();
     if (!url) {
-      Alert.alert('No URL', 'Enter a backend URL first.');
+      alert('No URL', 'Enter a backend URL first.');
       return;
     }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
     fetch(`${url}/health`, { signal: controller.signal })
-      .then((r) => {
+      .then(async (r) => {
         clearTimeout(timer);
-        if (r.ok) Alert.alert('Connected', 'Backend is reachable.');
-        else Alert.alert('Error', `Backend returned HTTP ${r.status}`);
+        if (r.ok) {
+          const data = await r.json().catch(() => ({})) as { base_url?: string; device?: string };
+          alert('Connected', `Backend is reachable.\nDevice: ${data.device ?? '?'}\nURL: ${data.base_url ?? url}`);
+        } else {
+          alert('Error', `Backend returned HTTP ${r.status}`);
+        }
       })
       .catch(() => {
         clearTimeout(timer);
-        Alert.alert('Unreachable', 'Could not connect to backend.');
+        alert('Unreachable', 'Could not connect. Check the URL and make sure the Space is running.');
       });
   }
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <AppModal config={modalConfig} onDismiss={hide} />
+
       <Text style={styles.heading}>Silero TTS Backend</Text>
       <Text style={styles.desc}>
-        Enter the URL of your backend service that runs Silero TTS. The app calls{' '}
-        <Text style={styles.code}>POST /tts/line</Text> and{' '}
-        <Text style={styles.code}>POST /tts/lesson</Text> when generating audio.
-      </Text>
-      <Text style={styles.desc}>
-        See the Silero models repo for setup:{'\n'}
-        <Text style={styles.code}>github.com/snakers4/silero-models</Text>
+        Enter the URL of your Hugging Face Space running the Silero TTS backend.
       </Text>
 
       <Text style={styles.label}>Backend URL</Text>
       <TextInput
         style={styles.input}
         value={backendUrl}
-        onChangeText={(t) => {
-          setBackendUrl(t);
-          setSaved(false);
-        }}
-        placeholder="http://192.168.1.x:8000"
+        onChangeText={(t) => { setBackendUrl(t); setSaved(false); }}
+        placeholder="https://dhextras-russ.hf.space"
         placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         autoCorrect={false}
@@ -94,38 +93,20 @@ export default function SettingsScreen() {
 
 const BACKEND_DOCS = `POST /tts/line
   body:     { "text": "<russian text>" }
-  response: { "url": "<URL to .mp3 file>" }
+  response: { "url": "<URL to .wav file>" }
 
 POST /tts/lesson
   body:     { "lines": ["line1", "line2", ...] }
-  response: { "url": "<URL to .mp3 file>" }
+  response: { "url": "<URL to .wav file>" }
 
 GET /health
-  response: 200 OK`;
+  response: { "ok": true, "base_url": "...", "device": "..." }`;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  heading: {
-    color: colors.text,
-    fontSize: fontSize.lg,
-    fontWeight: '600',
-  },
-  desc: {
-    color: colors.textSecondary,
-    fontSize: fontSize.md,
-    lineHeight: 22,
-  },
-  code: {
-    color: colors.accent,
-    fontFamily: 'monospace',
-  },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.md, gap: spacing.md },
+  heading: { color: colors.text, fontSize: fontSize.lg, fontWeight: '600' },
+  desc: { color: colors.textSecondary, fontSize: fontSize.md, lineHeight: 22 },
   label: {
     color: colors.textSecondary,
     fontSize: fontSize.sm,
@@ -142,10 +123,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     padding: spacing.md,
   },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
+  actions: { flexDirection: 'row', gap: spacing.md },
   btnPrimary: {
     flex: 1,
     backgroundColor: colors.accent,
@@ -153,11 +131,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
   },
-  btnPrimaryText: {
-    color: '#fff',
-    fontSize: fontSize.md,
-    fontWeight: '600',
-  },
+  btnPrimaryText: { color: '#fff', fontSize: fontSize.md, fontWeight: '600' },
   btnSecondary: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -167,10 +141,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     alignItems: 'center',
   },
-  btnSecondaryText: {
-    color: colors.text,
-    fontSize: fontSize.md,
-  },
+  btnSecondaryText: { color: colors.text, fontSize: fontSize.md },
   infoBox: {
     backgroundColor: colors.surface,
     borderRadius: 8,
