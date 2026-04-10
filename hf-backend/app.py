@@ -57,7 +57,9 @@ def synthesize(text: str) -> torch.Tensor:
 def save_audio(tensor: torch.Tensor) -> str:
     fname = f"{uuid.uuid4()}.wav"
     path = os.path.join(AUDIO_DIR, fname)
-    sf.write(path, tensor.cpu().numpy(), SAMPLE_RATE)
+    import numpy as np
+    audio = np.array(tensor.cpu().tolist(), dtype=np.float32)
+    sf.write(path, audio, SAMPLE_RATE)
     return f"{BASE_URL}/audio/{fname}"
 
 
