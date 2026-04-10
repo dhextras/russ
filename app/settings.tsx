@@ -33,12 +33,18 @@ export default function SettingsScreen() {
       Alert.alert('No URL', 'Enter a backend URL first.');
       return;
     }
-    fetch(`${url}/health`, { signal: AbortSignal.timeout(5000) })
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    fetch(`${url}/health`, { signal: controller.signal })
       .then((r) => {
+        clearTimeout(timer);
         if (r.ok) Alert.alert('Connected', 'Backend is reachable.');
         else Alert.alert('Error', `Backend returned HTTP ${r.status}`);
       })
-      .catch(() => Alert.alert('Unreachable', 'Could not connect to backend.'));
+      .catch(() => {
+        clearTimeout(timer);
+        Alert.alert('Unreachable', 'Could not connect to backend.');
+      });
   }
 
   return (
