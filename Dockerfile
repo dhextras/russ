@@ -18,7 +18,7 @@ COPY --chown=user hf-backend/app.py .
 # Remove this RUN line if the build fails due to network restrictions.
 RUN python -c "\
 import torch; \
-torch.hub.load('snakers4/silero-models', 'silero_tts', language='ru', speaker='v4_ru'); \
+torch.hub.load('snakers4/silero-models', 'silero_tts', language='ru', speaker='v4_ru', trust_repo=True); \
 print('Silero cached.')"
 
 EXPOSE 7860

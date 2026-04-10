@@ -30,6 +30,7 @@ model, _ = torch.hub.load(
     model="silero_tts",
     language="ru",
     speaker="v4_ru",
+    trust_repo=True,
 )
 model.to(device)
 print("Silero ready.")
