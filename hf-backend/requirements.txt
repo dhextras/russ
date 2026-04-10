@@ -1,7 +1,6 @@
 fastapi
 uvicorn[standard]
-torch
-torchaudio
+torch==2.1.0
 numpy
 soundfile
 pydantic
