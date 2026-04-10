@@ -1,7 +1,7 @@
-# HF Spaces Docker build — serves the Silero TTS API on port 7860
-# The React Native app files in this repo are ignored by this build.
-
 FROM python:3.11-slim
+
+# libsndfile is required for audio file I/O
+RUN apt-get update && apt-get install -y libsndfile1 && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -u 1000 user
 USER user
@@ -14,8 +14,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 COPY --chown=user hf-backend/app.py .
 
-# Pre-download Silero model at build time so cold starts are instant.
-# Remove this RUN line if the build fails due to network restrictions.
 RUN python -c "\
 import torch; \
 torch.hub.load('snakers4/silero-models', 'silero_tts', language='ru', speaker='v4_ru', trust_repo=True); \

@@ -2,7 +2,7 @@ import os
 import uuid
 import traceback
 import torch
-import torchaudio
+import soundfile as sf
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -57,7 +57,7 @@ def synthesize(text: str) -> torch.Tensor:
 def save_audio(tensor: torch.Tensor) -> str:
     fname = f"{uuid.uuid4()}.wav"
     path = os.path.join(AUDIO_DIR, fname)
-    torchaudio.save(path, tensor.unsqueeze(0).cpu(), SAMPLE_RATE, format="wav")
+    sf.write(path, tensor.cpu().numpy(), SAMPLE_RATE)
     return f"{BASE_URL}/audio/{fname}"
 
 
